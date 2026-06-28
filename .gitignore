@@ -1,25 +1,30 @@
-# ===== 参考项目（只读，不提交） =====
-MemoryBear/
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
 
-# ===== 项目文档（不提交，仅本地参考） =====
-files/
-
-# ===== 编辑器 / IDE =====
+# Editors / IDEs
 .vscode/
 .idea/
 .kiro/
+.agents/
+.codex/
 
-# ===== 环境变量与密钥 =====
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 *.key
+*.crt
+*.p12
 
-# ===== SSL 证书（人工传到服务器，不进 git） =====
+# Local SSL certificates
 web/certs/
+certs/
 
-# ===== Python / 后端 =====
+# Python
 .venv/
 venv/
 env/
@@ -27,31 +32,46 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.python-version
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 *.egg-info/
-dist/
 build/
-.python-version
-files/
-# ===== Node / 前端 =====
-node_modules/
+dist/
+
+# Python / Celery runtime files
+celerybeat-schedule*
+api/celerybeat-schedule*
+
+# Node / frontend
+web/node_modules/
 .pnp
 .pnp.js
-dist-ssr/
-*.local
 .vite/
-coverage/
-.vscode/
-# ===== 构建产物 =====
+dist-ssr/
+*.tsbuildinfo
+*.local
+
+# Logs, caches, and temporary files
 *.log
 logs/
+.cache/
 tmp/
 temp/
-api/celerybeat-schedule.dir
-api/celerybeat-schedule.dat
-web/tsconfig.tsbuildinfo
-api/celerybeat-schedule.bak
+*.tmp
+
+# Runtime uploads and local generated assets
+api/storage/*
+!api/storage/.gitkeep
+
+# Local scratch/reference files
+files/
