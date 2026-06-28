@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ──────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    /* 暖色噪点底纹，给"纸感" */
+    background-image: radial-gradient(
+        1200px 600px at 100% -10%,
+        rgba(255, 176, 136, 0.12),
+        transparent 60%
+      ),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 127, 240, 0.1), transparent 60%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-coral-soft text-coral-deep;
+  }
+  /* 细滚动条，暖灰 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(42, 36, 56, 0.14);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(42, 36, 56, 0.26);
+    background-clip: content-box;
+  }
+}
+
+/* ── Components ────────────────────────────────────── */
+@layer components {
+  /* 渐变签名色块/文字 */
+  .mf-gradient {
+    background-image: linear-gradient(135deg, #ff6b5e 0%, #ffb088 100%);
+  }
+  .mf-gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #ff6b5e 0%, #ffb088 100%);
+  }
+
+  /* 卡片 */
+  .mf-card {
+    @apply bg-surface rounded-2xl border border-line shadow-soft;
+  }
+  .mf-card-hover {
+    @apply transition-all duration-200 hover:shadow-lift hover:-translate-y-0.5;
+  }
+
+  /* 按钮基类 */
+  .mf-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold
+           px-4 py-2.5 text-sm transition-all duration-150 select-none
+           disabled:opacity-50 disabled:pointer-events-none
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
+  }
+  .mf-btn-primary {
+    @apply mf-btn text-white shadow-coral;
+    background-image: linear-gradient(135deg, #ff6b5e 0%, #ff8a6b 100%);
+  }
+  .mf-btn-primary:hover {
+    filter: brightness(1.04);
+    @apply -translate-y-0.5;
+  }
+  .mf-btn-ghost {
+    @apply mf-btn bg-transparent text-ink-soft hover:bg-ink/5 hover:text-ink;
+  }
+  .mf-btn-soft {
+    @apply mf-btn bg-coral-soft text-coral-deep hover:bg-coral/15;
+  }
+  .mf-btn-outline {
+    @apply mf-btn border border-line bg-surface text-ink hover:border-coral/40 hover:text-coral-deep;
+  }
+  .mf-btn-sm {
+    @apply px-3 py-1.5 text-xs rounded-lg;
+  }
+
+  /* 输入框 */
+  .mf-input {
+    @apply w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink
+           placeholder:text-ink-faint transition
+           focus:outline-none focus:border-coral/60 focus:ring-4 focus:ring-coral/10;
+  }
+  textarea.mf-input {
+    @apply resize-none leading-relaxed;
+  }
+
+  /* 标签药丸 */
+  .mf-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+
+  /* 区块小标题（eyebrow） */
+  .mf-eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint;
+  }
+
+  /* 侧栏导航项 */
+  .mf-nav-item {
+    @apply relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium
+           text-white/55 transition-colors duration-150 hover:text-white hover:bg-white/5;
+  }
+  .mf-nav-item.is-active {
+    @apply text-white bg-white/10;
+  }
+  /* 选中态：记忆线发光圆点 */
+  .mf-nav-item.is-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full mf-gradient;
+    box-shadow: 0 0 12px rgba(255, 107, 94, 0.7);
+  }
+
+  /* 加载骨架 */
+  .mf-skeleton {
+    @apply relative overflow-hidden rounded-xl bg-ink/5;
+  }
+  .mf-skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent
+    );
+  }
+}
+
+/* 路由切换淡入 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Markdown 渲染基础排版 */
+.mf-prose {
+  @apply text-[15px] leading-relaxed text-ink;
+}
+.mf-prose p {
+  @apply my-2;
+}
+.mf-prose h1,
+.mf-prose h2,
+.mf-prose h3 {
+  @apply font-display font-bold mt-4 mb-2;
+}
+.mf-prose h1 {
+  @apply text-xl;
+}
+.mf-prose h2 {
+  @apply text-lg;
+}
+.mf-prose ul,
+.mf-prose ol {
+  @apply my-2 pl-5 list-disc space-y-1;
+}
+.mf-prose ol {
+  @apply list-decimal;
+}
+.mf-prose code {
+  @apply font-mono text-[13px] bg-ink/5 px-1.5 py-0.5 rounded;
+}
+.mf-prose pre {
+  @apply font-mono text-[13px] bg-ink text-bg p-4 rounded-xl overflow-x-auto my-3;
+}
+.mf-prose pre code {
+  @apply bg-transparent p-0 text-bg;
+}
+.mf-prose a {
+  @apply text-coral-deep underline underline-offset-2;
+}
+.mf-prose blockquote {
+  @apply border-l-3 border-coral/40 pl-4 my-3 text-ink-soft italic;
+}
+.mf-prose table {
+  @apply my-3 w-full text-sm border-collapse;
+}
+.mf-prose th,
+.mf-prose td {
+  @apply border border-line px-3 py-1.5 text-left;
+}

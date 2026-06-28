@@ -1,0 +1,44 @@
+import client, { type Wrapped } from './client'
+
+// 消息推送渠道——任务跑完主动推到微信/群。对应后端 /notify-channels
+export type ChannelType = 'serverchan' | 'wecom' | 'dingtalk' | 'webhook'
+
+export interface NotifyChannel {
+  id: string
+  channel_type: ChannelType
+  name: string
+  target_mask: string
+  enabled: boolean
+  created_at: string | null
+}
+
+export interface NotifyChannelCreate {
+  channel_type: ChannelType
+  name?: string
+  target: string
+  enabled?: boolean
+}
+
+export interface NotifyChannelUpdate {
+  name?: string
+  target?: string
+  enabled?: boolean
+}
+
+export const notifyApi = {
+  list() {
+    return client.get<unknown, Wrapped<NotifyChannel[]>>('/notify-channels')
+  },
+  create(body: NotifyChannelCreate) {
+    return client.post<unknown, Wrapped<NotifyChannel>>('/notify-channels', body)
+  },
+  update(id: string, body: NotifyChannelUpdate) {
+    return client.put<unknown, Wrapped<NotifyChannel>>(`/notify-channels/${id}`, body)
+  },
+  test(id: string) {
+    return client.post<unknown, Wrapped<null>>(`/notify-channels/${id}/test`)
+  },
+  remove(id: string) {
+    return client.delete<unknown, Wrapped<null>>(`/notify-channels/${id}`)
+  },
+}
