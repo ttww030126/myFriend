@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyFriend · 知己 — 一个懂你、陪你、帮你的 AI 伙伴</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #fbf8f4;
+        --surface: #ffffff;
+        --ink: #2a2438;
+        --ink-soft: #6b6480;
+        --ink-faint: #9a93ab;
+        --coral: #ff6b5e;
+        --coral-deep: #f0473a;
+        --coral-soft: #ffe5e1;
+        --apricot: #ffb088;
+        --sage: #2fb59c;
+        --sage-soft: #ddf3ee;
+        --lilac: #8b7ff0;
+        --lilac-soft: #ebe8fc;
+        --line: #ece6dd;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1,
+      h2,
+      h3,
+      .display {
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .mono {
+        font-family: 'Space Mono', monospace;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 28px;
+      }
+      .gradient-text {
+        background: linear-gradient(135deg, var(--coral), var(--apricot));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .eyebrow {
+        font-family: 'Space Mono', monospace;
+        font-size: 13px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--coral-deep);
+      }
+
+      /* nav */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(12px);
+        background: rgba(251, 248, 244, 0.82);
+        border-bottom: 1px solid var(--line);
+      }
+      nav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 68px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+      }
+      .brand small {
+        color: var(--ink-faint);
+        font-weight: 600;
+        font-size: 13px;
+        font-family: 'Space Mono', monospace;
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+        font-size: 15px;
+        color: var(--ink-soft);
+      }
+      .nav-links a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--coral);
+      }
+      @media (max-width: 720px) {
+        .nav-links {
+          display: none;
+        }
+      }
+
+      /* hero */
+      .hero {
+        padding: 96px 0 80px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero h1 {
+        font-size: clamp(40px, 7vw, 76px);
+        line-height: 1.04;
+        margin-bottom: 24px;
+      }
+      .hero p.lead {
+        font-size: clamp(17px, 2.4vw, 21px);
+        color: var(--ink-soft);
+        max-width: 620px;
+        margin: 0 auto 40px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font-size: 14px;
+        color: var(--ink-soft);
+        margin-bottom: 32px;
+        box-shadow: 0 2px 8px -2px rgba(42, 36, 56, 0.06);
+      }
+      .pill .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--sage);
+      }
+      .cta {
+        display: inline-flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 28px;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 16px;
+        text-decoration: none;
+        transition: transform 0.15s, box-shadow 0.2s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--coral), var(--apricot));
+        color: #fff;
+        box-shadow: 0 8px 24px -6px rgba(255, 107, 94, 0.45);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+      }
+      .btn-ghost {
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .btn-ghost:hover {
+        border-color: var(--coral);
+        color: var(--coral);
+      }
+
+      /* memory-line motif */
+      .motif {
+        margin: 56px auto 0;
+        display: block;
+      }
+      .thread {
+        stroke-dasharray: 3 9;
+        animation: dash 22s linear infinite;
+      }
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -240;
+        }
+      }
+      .node {
+        animation: breathe 3.2s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .node:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+      .node:nth-child(4) {
+        animation-delay: 1.2s;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 0.85;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* sections */
+      section.block {
+        padding: 80px 0;
+      }
+      .section-head {
+        text-align: center;
+        max-width: 620px;
+        margin: 0 auto 56px;
+      }
+      .section-head h2 {
+        font-size: clamp(30px, 4.5vw, 44px);
+        margin: 12px 0 16px;
+      }
+      .section-head p {
+        color: var(--ink-soft);
+        font-size: 17px;
+      }
+
+      /* feature grid */
+      .grid {
+        display: grid;
+        gap: 22px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 30px;
+        box-shadow: 0 2px 8px -2px rgba(42, 36, 56, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 36px -10px rgba(42, 36, 56, 0.16);
+      }
+      .ic {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+      }
+      .card h3 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+      .card p {
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      /* redesign comparison */
+      .compare {
+        display: grid;
+        gap: 22px;
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 720px) {
+        .compare {
+          grid-template-columns: 1fr;
+        }
+      }
+      .compare .panel {
+        border-radius: 24px;
+        padding: 32px;
+      }
+      .panel.before {
+        background: #1f2430;
+        color: #c7c9d1;
+      }
+      .panel.before .tag {
+        color: #8d93a3;
+      }
+      .panel.after {
+        background: linear-gradient(150deg, #fff, var(--coral-soft));
+        border: 1px solid var(--line);
+      }
+      .panel .tag {
+        font-family: 'Space Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      .panel h3 {
+        font-size: 24px;
+        margin-bottom: 16px;
+      }
+      .panel ul {
+        list-style: none;
+        font-size: 15px;
+      }
+      .panel li {
+        padding: 7px 0;
+        padding-left: 24px;
+        position: relative;
+      }
+      .panel li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 14px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .panel.before li::before {
+        background: #4a5160;
+      }
+      .panel.after li::before {
+        background: var(--coral);
+      }
+
+      /* tech stack */
+      .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+      .chip {
+        padding: 10px 20px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font-family: 'Space Mono', monospace;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .chip b {
+        color: var(--coral-deep);
+      }
+
+      /* palette swatches */
+      .palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 12px;
+      }
+      .sw {
+        text-align: center;
+      }
+      .sw .chip-color {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        box-shadow: 0 6px 18px -6px rgba(42, 36, 56, 0.25);
+      }
+      .sw span {
+        display: block;
+        margin-top: 8px;
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        color: var(--ink-faint);
+      }
+
+      /* steps / install */
+      .steps {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      .code {
+        background: #1f2430;
+        color: #e6e8ee;
+        border-radius: 20px;
+        padding: 24px 26px;
+        font-family: 'Space Mono', monospace;
+        font-size: 14px;
+        line-height: 1.9;
+        overflow-x: auto;
+        margin-top: 16px;
+      }
+      .code .c {
+        color: #7d8595;
+      }
+      .code .g {
+        color: #6fe0c4;
+      }
+      .step-row {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 36px;
+      }
+      .step-num {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--ink);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 800;
+      }
+      .step-row h3 {
+        font-size: 19px;
+        margin-bottom: 4px;
+      }
+      .step-row p {
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 40px 0;
+        text-align: center;
+        color: var(--ink-faint);
+        font-size: 14px;
+      }
+      footer .brand {
+        justify-content: center;
+        margin-bottom: 12px;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <div class="brand">
+          <svg width="34" height="34" viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#FF6B5E" />
+                <stop offset="1" stop-color="#FFB088" />
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="16" fill="#2A2438" />
+            <path d="M16 40 C26 24 38 24 48 40" fill="none" stroke="url(#lg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 7" />
+            <circle cx="16" cy="40" r="5" fill="url(#lg)" />
+            <circle cx="48" cy="40" r="5" fill="#2FB59C" />
+            <circle cx="32" cy="28" r="4" fill="#8B7FF0" />
+          </svg>
+          MyFriend <small>知己</small>
+        </div>
+        <div class="nav-links">
+          <a href="#features">能做什么</a>
+          <a href="#redesign">焕新设计</a>
+          <a href="#tech">技术栈</a>
+          <a href="#install">如何运行</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="wrap">
+        <div class="pill"><span class="dot"></span> 全新 Vue 3 前端 · 温暖陪伴风格</div>
+        <h1>一个<span class="gradient-text">懂你、陪你、帮你</span><br />的 AI 知己</h1>
+        <p class="lead">
+          MyFriend 不只是一个问答机器人。它会记住关于你的点滴，把你的资料织成知识网，在你需要时主动搭把手——像一位真正认识你的老友。
+        </p>
+        <div class="cta">
+          <a href="#features" class="btn btn-primary">看看它能做什么 →</a>
+          <a href="#install" class="btn btn-ghost">本地跑起来</a>
+        </div>
+
+        <svg class="motif" width="320" height="120" viewBox="0 0 320 120">
+          <path class="thread" d="M40 80 C110 30 210 30 280 80" fill="none" stroke="url(#lg)" stroke-width="3" stroke-linecap="round" />
+          <circle class="node" cx="40" cy="80" r="11" fill="#8B7FF0" />
+          <circle class="node" cx="160" cy="44" r="13" fill="#FF6B5E" />
+          <circle class="node" cx="280" cy="80" r="11" fill="#2FB59C" />
+          <text x="40" y="110" text-anchor="middle" font-family="Space Mono" font-size="11" fill="#9A93AB">知识</text>
+          <text x="160" y="24" text-anchor="middle" font-family="Space Mono" font-size="11" fill="#9A93AB">你</text>
+          <text x="280" y="110" text-anchor="middle" font-family="Space Mono" font-size="11" fill="#9A93AB">记忆</text>
+        </svg>
+      </div>
+    </header>
+
+    <section class="block" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">What it does</div>
+          <h2>它陪你做的每一件事</h2>
+          <p>从聊天到记忆，从知识库到音乐，每个模块都被重新设计成温暖、清晰、好上手的样子。</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="ic" style="background: var(--coral-soft)">💬</div>
+            <h3>会用工具的对话</h3>
+            <p>聊天时可一键开启「知识库 / 记忆 / 联网」三种能力，流式回答并实时显示它正在调用哪个工具、查到了什么。</p>
+          </div>
+          <div class="card">
+            <div class="ic" style="background: var(--lilac-soft)">📚</div>
+            <h3>你的私人知识库</h3>
+            <p>上传文档、图片、网页，自动解析切片并打标签，回答问题时带出处引用，做到有据可依。</p>
+          </div>
+          <div class="card">
+            <div class="ic" style="background: var(--sage-soft)">🧠</div>
+            <h3>会成长的记忆</h3>
+            <p>它把你提到的人、事、物抽取成三元组，连成记忆图谱，并定期反思生成关于你的洞察。</p>
+          </div>
+          <div class="card">
+            <div class="ic" style="background: var(--coral-soft)">🖼️</div>
+            <h3>看得懂的图片</h3>
+            <p>多模态理解上传的图片，自动生成描述与标签，让它们和文字一样可被全局搜索。</p>
+          </div>
+          <div class="card">
+            <div class="ic" style="background: var(--lilac-soft)">🔬</div>
+            <h3>深度研究与定时任务</h3>
+            <p>给一个题目让它多轮检索写报告，或设定 cron 让它每天替你跑简报、做整理。</p>
+          </div>
+          <div class="card">
+            <div class="ic" style="background: var(--sage-soft)">🎧</div>
+            <h3>懂心情的电台</h3>
+            <p>根据你近期的情绪推荐音乐，内置迷你播放器，现取可播放音源，边聊边听。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="redesign" style="background: var(--surface)">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">Redesign</div>
+          <h2>从「冷工具」到「暖知己」</h2>
+          <p>原项目是一套冷色调、Ant Design 风格的工具界面。MyFriend 把它彻底重塑成一种有温度的陪伴感。</p>
+        </div>
+        <div class="compare">
+          <div class="panel before">
+            <div class="tag">Before · 原版</div>
+            <h3>冷调工具感</h3>
+            <ul>
+              <li>React 18 + Ant Design 5 组件库</li>
+              <li>蓝灰冷色、直角卡片、信息密集</li>
+              <li>Zustand 状态管理</li>
+              <li>偏「专业后台」的观感</li>
+            </ul>
+          </div>
+          <div class="panel after">
+            <div class="tag" style="color: var(--coral-deep)">After · MyFriend 知己</div>
+            <h3>温暖陪伴感</h3>
+            <ul>
+              <li>Vue 3 + 全自研设计系统</li>
+              <li>暖纸白底、珊瑚橘渐变、大圆角、呼吸动效</li>
+              <li>Pinia 状态管理</li>
+              <li>以「记忆线」为签名视觉，像老友一样的语气</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="section-head" style="margin-top: 64px; margin-bottom: 24px">
+          <h2 style="font-size: 28px">温暖的色板</h2>
+        </div>
+        <div class="palette">
+          <div class="sw"><div class="chip-color" style="background: #fbf8f4; border: 1px solid #ece6dd"></div><span>暖纸白</span></div>
+          <div class="sw"><div class="chip-color" style="background: #2a2438"></div><span>梅墨</span></div>
+          <div class="sw"><div class="chip-color" style="background: linear-gradient(135deg, #ff6b5e, #ffb088)"></div><span>珊瑚渐变</span></div>
+          <div class="sw"><div class="chip-color" style="background: #2fb59c"></div><span>鼠尾草绿</span></div>
+          <div class="sw"><div class="chip-color" style="background: #8b7ff0"></div><span>紫丁香</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="tech">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">Tech Stack</div>
+          <h2>焕新的前端技术栈</h2>
+          <p>前端完全重写，后端（FastAPI + 多存储）契约保持不变，可直接对接。</p>
+        </div>
+        <div class="stack">
+          <div class="chip"><b>Vue 3</b> · Composition API</div>
+          <div class="chip"><b>Pinia</b> · 状态管理</div>
+          <div class="chip"><b>TypeScript</b></div>
+          <div class="chip"><b>Tailwind CSS</b> · 设计令牌</div>
+          <div class="chip"><b>Vue Router</b> 4</div>
+          <div class="chip"><b>Vite</b> 6</div>
+          <div class="chip"><b>ECharts</b> · 记忆图谱</div>
+          <div class="chip"><b>Axios</b> · SSE 流式</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="install" style="background: var(--surface)">
+      <div class="wrap steps">
+        <div class="section-head">
+          <div class="eyebrow">Get Started</div>
+          <h2>三步在本地跑起来</h2>
+          <p>前端独立运行；如需完整功能，再按 README 启动后端与四个存储服务。</p>
+        </div>
+
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div style="flex: 1">
+            <h3>安装前端依赖</h3>
+            <p>进入 web 目录，安装 npm 包。需要 Node.js ≥ 18。</p>
+            <div class="code">
+              <span class="c"># 进入前端工程</span><br />
+              cd web<br />
+              npm install
+            </div>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div style="flex: 1">
+            <h3>配置接口地址</h3>
+            <p>复制环境变量模板（默认通过 Vite 代理把 <span class="mono">/api</span> 转发到 <span class="mono">localhost:8000</span>）。</p>
+            <div class="code">
+              cp .env.example .env<br />
+              <span class="c"># VITE_API_BASE=/api</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div style="flex: 1">
+            <h3>启动开发服务器</h3>
+            <p>打开 <span class="mono">http://localhost:5173</span> 即可看到全新的 MyFriend。</p>
+            <div class="code">
+              npm run dev<br />
+              <span class="g">➜ Local: http://localhost:5173/</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="brand">
+          <svg width="28" height="28" viewBox="0 0 64 64">
+            <rect width="64" height="64" rx="16" fill="#2A2438" />
+            <path d="M16 40 C26 24 38 24 48 40" fill="none" stroke="url(#lg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 7" />
+            <circle cx="16" cy="40" r="5" fill="#FF6B5E" />
+            <circle cx="48" cy="40" r="5" fill="#2FB59C" />
+            <circle cx="32" cy="28" r="4" fill="#8B7FF0" />
+          </svg>
+          MyFriend · 知己
+        </div>
+        <p>一个懂你、陪你、帮你的 AI 伙伴 · Vue 3 + Pinia + TypeScript + Tailwind CSS</p>
+      </div>
+    </footer>
+  </body>
+</html>

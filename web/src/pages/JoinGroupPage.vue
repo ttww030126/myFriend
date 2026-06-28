@@ -27,7 +27,7 @@ onMounted(async () => {
   }
   try {
     const res = await client.post<unknown, Wrapped<{ id: string }>>('/groups/join', { code })
-    router.replace({ name: 'group-chat', query: { conv: res.data.id } })
+    router.replace({ name: 'group-room', params: { convId: res.data.id } })
   } catch (e) {
     errMsg.value = (e as Error).message || '加入失败，邀请码可能已失效'
     status.value = 'error'

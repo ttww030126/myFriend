@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import {
   modelApi,
   type ModelConfigItem,
@@ -12,22 +12,26 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import MfModal from '@/components/ui/MfModal.vue'
 import MfIcon from '@/components/ui/MfIcon.vue'
 import MfEmpty from '@/components/ui/MfEmpty.vue'
+import {
+  CAPABILITY_OPTIONS,
+  CAP_LABEL,
+  PROVIDER_DEFAULT_BASE_URL,
+  PROVIDER_LINKS,
+  PROVIDER_OPTIONS,
+  TYPE_GUIDE,
+  TYPE_LABEL,
+  TYPE_OPTIONS,
+} from './modelConfig/constants'
 
 const ui = useUiStore()
 const items = ref<ModelConfigItem[]>([])
 const loading = ref(true)
 const showForm = ref(false)
+const showGuide = ref(false)
 const testing = ref<string | null>(null)
 
-const types: { v: ModelType; label: string }[] = [
-  { v: 'chat', label: '对话' },
-  { v: 'multimodal', label: '多模态' },
-  { v: 'embedding', label: '向量' },
-  { v: 'rerank', label: '重排' },
-  { v: 'websearch', label: '联网' },
-  { v: 'asr', label: '语音' },
-]
-const providers: Provider[] = ['openai', 'qwen', 'doubao', 'deepseek', 'zhipu', 'qianfan', 'tavily']
+const types = TYPE_OPTIONS
+const providers = PROVIDER_OPTIONS
 
 const form = reactive<ModelConfigPayload>({
   type: 'chat',
@@ -40,6 +44,17 @@ const form = reactive<ModelConfigPayload>({
   is_default: false,
 })
 
+// 切换供应商时自动带出默认 base_url（仅当当前为空或仍是上一个默认值时覆盖，避免冲掉手填内容）
+watch(
+  () => form.provider,
+  (next, prev) => {
+    const prevDefault = prev ? PROVIDER_DEFAULT_BASE_URL[prev] : ''
+    if (!form.base_url || form.base_url === prevDefault) {
+      form.base_url = PROVIDER_DEFAULT_BASE_URL[next] || ''
+    }
+  },
+)
+
 async function load() {
   loading.value = true
   try {
@@ -48,6 +63,8 @@ async function load() {
     ui.error((e as Error).message)
   } finally {
     loading.value = false
+    // 一个模型都没有时，默认把配置指南展开
+    if (!items.value.length) showGuide.value = true
   }
 }
 
@@ -58,11 +75,17 @@ function openNew() {
     name: '',
     model_name: '',
     api_key: '',
-    base_url: '',
+    base_url: PROVIDER_DEFAULT_BASE_URL.openai,
     capability: [],
     is_default: false,
   })
   showForm.value = true
+}
+
+function toggleCap(v: string) {
+  const i = form.capability.indexOf(v)
+  if (i >= 0) form.capability.splice(i, 1)
+  else form.capability.push(v)
 }
 
 async function submit() {
@@ -107,7 +130,8 @@ async function remove(it: ModelConfigItem) {
   }
 }
 
-const typeLabel = (t: ModelType) => types.find((x) => x.v === t)?.label || t
+const typeLabel = (t: ModelType) => TYPE_LABEL[t] || t
+const providerLabel = (p: Provider) => PROVIDER_OPTIONS.find((x) => x.value === p)?.label || p
 
 onMounted(load)
 </script>
@@ -116,9 +140,58 @@ onMounted(load)
   <div class="mx-auto max-w-4xl px-8 py-10">
     <PageHeader eyebrow="设置" title="模型配置" desc="接入你自己的大模型 API，MyFriend 的大脑由你挑选">
       <template #actions>
+        <button class="mf-btn-ghost" @click="showGuide = !showGuide">
+          <MfIcon name="book" :size="16" /> 配置说明
+        </button>
         <button class="mf-btn-primary" @click="openNew"><MfIcon name="plus" :size="18" /> 添加模型</button>
       </template>
     </PageHeader>
+
+    <!-- 配置指南：去哪申请 Key / 各模型类型怎么配 -->
+    <section v-if="showGuide" class="mf-card mb-6 space-y-6 p-6">
+      <div>
+        <p class="mf-eyebrow mb-2 text-sage">先读我 · 怎么配</p>
+        <p class="text-sm leading-relaxed text-ink-soft">
+          MyFriend 不内置任何模型，需要你自己填入大模型供应商的 API Key（密钥加密存储，仅你可见）。新手推荐先去
+          <b class="text-ink">智谱 AI</b> 注册（送额度、模型类型最全），至少配置
+          <b class="text-ink">对话</b> 和 <b class="text-ink">向量</b> 两类即可开聊。
+        </p>
+      </div>
+
+      <div>
+        <p class="mf-eyebrow mb-3">各模型类型有什么用</p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div v-for="g in TYPE_GUIDE" :key="g.name" class="rounded-2xl border border-line/70 p-4">
+            <div class="mb-1.5 flex items-center gap-2">
+              <span class="font-display font-bold text-ink">{{ g.name }}</span>
+              <span class="mf-pill" :class="g.tag === '必配' ? 'bg-coral-soft text-coral-deep' : 'bg-ink/5 text-ink-soft'">{{ g.tag }}</span>
+            </div>
+            <p class="text-xs leading-relaxed text-ink-soft">{{ g.desc }}</p>
+            <p class="mt-2 text-xs text-sage">推荐：{{ g.provider }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="mf-eyebrow mb-3">各供应商申请入口</p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <a
+            v-for="p in PROVIDER_LINKS"
+            :key="p.label"
+            :href="p.url"
+            target="_blank"
+            rel="noreferrer"
+            class="group rounded-2xl border border-line/70 p-4 transition hover:border-coral/40 hover:bg-coral-soft/30"
+          >
+            <div class="flex items-center gap-1.5 font-medium text-ink">
+              <MfIcon name="research" :size="14" class="text-coral" /> {{ p.label }}
+            </div>
+            <p class="mt-1 text-xs leading-relaxed text-ink-soft">{{ p.desc }}</p>
+          </a>
+        </div>
+        <p class="mt-3 text-xs text-ink-faint">提示：以上为第三方平台地址，注册与计费以各平台为准；密钥请勿泄露给他人。</p>
+      </div>
+    </section>
 
     <div v-if="loading" class="space-y-3">
       <div v-for="i in 4" :key="i" class="mf-skeleton h-20" />
@@ -136,7 +209,10 @@ onMounted(load)
             {{ it.name }}
             <span v-if="it.is_default" class="mf-pill ml-1 bg-sage-soft text-sage">默认</span>
           </p>
-          <p class="truncate font-mono text-xs text-ink-faint">{{ it.provider }} · {{ it.model_name }}</p>
+          <p class="truncate font-mono text-xs text-ink-faint">{{ providerLabel(it.provider) }} · {{ it.model_name }}</p>
+          <div v-if="it.capability?.length" class="mt-1.5 flex flex-wrap gap-1.5">
+            <span v-for="c in it.capability" :key="c" class="mf-pill bg-sage-soft text-sage">{{ CAP_LABEL[c] || c }}</span>
+          </div>
         </div>
         <div class="flex gap-2">
           <button class="mf-btn-sm mf-btn-ghost" :disabled="testing === it.id" @click="test(it)">
@@ -154,13 +230,13 @@ onMounted(load)
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink">类型</label>
             <select v-model="form.type" class="mf-input">
-              <option v-for="t in types" :key="t.v" :value="t.v">{{ t.label }}</option>
+              <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
           </div>
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink">供应商</label>
             <select v-model="form.provider" class="mf-input">
-              <option v-for="p in providers" :key="p" :value="p">{{ p }}</option>
+              <option v-for="p in providers" :key="p.value" :value="p.value">{{ p.label }}</option>
             </select>
           </div>
         </div>
@@ -170,15 +246,30 @@ onMounted(load)
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink">模型标识</label>
-          <input v-model="form.model_name" class="mf-input" placeholder="gpt-4o / qwen-max …" />
+          <input v-model="form.model_name" class="mf-input" placeholder="gpt-4o / qwen-max / glm-4 …" />
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink">API Key</label>
           <input v-model="form.api_key" type="password" class="mf-input" placeholder="sk-…" />
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-ink">Base URL（可选）</label>
+          <label class="mb-1.5 block text-sm font-medium text-ink">Base URL（切换供应商自动带出，可改）</label>
           <input v-model="form.base_url" class="mf-input" placeholder="https://api.openai.com/v1" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-ink">能力（可多选）</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="c in CAPABILITY_OPTIONS"
+              :key="c.value"
+              type="button"
+              class="mf-pill cursor-pointer transition"
+              :class="form.capability.includes(c.value) ? 'bg-coral-soft text-coral-deep' : 'bg-ink/5 text-ink-soft'"
+              @click="toggleCap(c.value)"
+            >
+              {{ c.label }}
+            </button>
+          </div>
         </div>
         <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
           <input v-model="form.is_default" type="checkbox" class="accent-coral" /> 设为该类型默认模型

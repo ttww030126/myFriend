@@ -2,15 +2,23 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import client, { type Wrapped } from '@/api/client'
-import type { ChatMessage } from '@/api/chat'
 import MfLogo from '@/components/ui/MfLogo.vue'
 import MarkdownMessage from '@/components/ui/MarkdownMessage.vue'
 import MfSpinner from '@/components/ui/MfSpinner.vue'
 import MfEmpty from '@/components/ui/MfEmpty.vue'
 
+interface ShareMessage {
+  role: string
+  content: string
+  images?: string[]
+  sender_name?: string | null
+  is_me?: boolean
+}
 interface ShareData {
   title: string
-  messages: ChatMessage[]
+  messages: ShareMessage[]
+  ai_name?: string | null
+  created_at?: string | null
 }
 
 const route = useRoute()
@@ -21,7 +29,7 @@ const data = ref<ShareData | null>(null)
 onMounted(async () => {
   try {
     const token = route.params.token as string
-    const res = await client.get<unknown, Wrapped<ShareData>>(`/share/${token}`)
+    const res = await client.get<unknown, Wrapped<ShareData>>(`/public/shares/${token}`)
     data.value = res.data
   } catch {
     error.value = true
@@ -46,11 +54,12 @@ onMounted(async () => {
       <div v-else>
         <h1 class="mb-8 font-display text-2xl font-bold text-ink">{{ data.title }}</h1>
         <div class="space-y-6">
-          <div v-for="m in data.messages" :key="m.id" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
+          <div v-for="(m, i) in data.messages" :key="i" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
             <div
               class="max-w-[85%] rounded-3xl px-5 py-3"
               :class="m.role === 'user' ? 'bg-gradient-to-br from-coral to-apricot text-white' : 'mf-card'"
             >
+              <p v-if="m.sender_name && m.role !== 'user'" class="mb-1 text-xs font-semibold text-lilac">{{ m.sender_name }}</p>
               <MarkdownMessage v-if="m.role !== 'user'" :content="m.content" />
               <p v-else class="whitespace-pre-wrap">{{ m.content }}</p>
             </div>

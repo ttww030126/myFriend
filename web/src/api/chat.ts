@@ -56,6 +56,7 @@ export interface ChatMessage {
     tool_calls?: ToolCall[]
     attachments?: { file_name: string; text?: string }[]
     image_keys?: string[]
+    trace_id?: string
   } | null
   feedback?: 'up' | 'down' | null
   created_at: string

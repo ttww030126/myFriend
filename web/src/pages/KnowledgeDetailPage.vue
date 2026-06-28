@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { documentApi, type DocumentItem } from '@/api/documents'
 import { knowledgeBaseApi, type KnowledgeBase } from '@/api/knowledgeBases'
@@ -17,15 +17,54 @@ const kbId = route.params.kbId as string
 const kb = ref<KnowledgeBase | null>(null)
 const docs = ref<DocumentItem[]>([])
 const loading = ref(true)
+const refreshing = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const showUrl = ref(false)
 const url = ref('')
+
+// 解析是异步的：只要有文档处于 pending/parsing，就后台轮询刷新状态
+const pollTimer = ref<number | null>(null)
 
 const statusMap: Record<string, { label: string; cls: string }> = {
   done: { label: '已就绪', cls: 'bg-sage-soft text-sage' },
   parsing: { label: '解析中', cls: 'bg-apricot/20 text-apricot' },
   pending: { label: '排队中', cls: 'bg-ink/5 text-ink-soft' },
   failed: { label: '失败', cls: 'bg-coral-soft text-coral-deep' },
+}
+
+function hasPending() {
+  return docs.value.some((d) => d.status === 'pending' || d.status === 'parsing')
+}
+
+function stopPolling() {
+  if (pollTimer.value !== null) {
+    window.clearInterval(pollTimer.value)
+    pollTimer.value = null
+  }
+}
+
+// 根据当前文档状态决定是否需要轮询
+function syncPolling() {
+  if (hasPending()) {
+    if (pollTimer.value === null) {
+      pollTimer.value = window.setInterval(() => refresh(true), 3000)
+    }
+  } else {
+    stopPolling()
+  }
+}
+
+// silent=true 时不显示骨架屏，用于后台轮询，避免列表闪烁
+async function refresh(silent = false) {
+  if (silent) refreshing.value = true
+  try {
+    docs.value = (await documentApi.list(1, 100, undefined, kbId)).data.items
+  } catch (e) {
+    if (!silent) ui.error((e as Error).message)
+  } finally {
+    if (silent) refreshing.value = false
+    syncPolling()
+  }
 }
 
 async function load() {
@@ -37,31 +76,45 @@ async function load() {
     ui.error((e as Error).message)
   } finally {
     loading.value = false
+    syncPolling()
   }
 }
 
 async function onFiles(e: Event) {
-  const files = (e.target as HTMLInputElement).files
+  const input = e.target as HTMLInputElement
+  const files = input.files
   if (!files?.length) return
   for (const f of Array.from(files)) {
     try {
       await documentApi.upload(f, kbId)
-      ui.success(`已上传 ${f.name}`)
+      ui.success(`已上传 ${f.name}，正在解析…`)
     } catch (err) {
       ui.error((err as Error).message)
     }
   }
-  load()
+  input.value = '' // 允许重复上传同名文件
+  // 上传后立即刷新一次，并由 syncPolling 接管后续状态轮询
+  await refresh(true)
 }
 
 async function importUrl() {
   if (!url.value.trim()) return
   try {
     await documentApi.importUrl(url.value.trim(), kbId)
-    ui.success('已开始抓取网页')
+    ui.success('已开始抓取网页，正在解析…')
     showUrl.value = false
     url.value = ''
-    load()
+    await refresh(true)
+  } catch (e) {
+    ui.error((e as Error).message)
+  }
+}
+
+async function retry(d: DocumentItem) {
+  try {
+    await documentApi.retry(d.id)
+    ui.success('已重新提交解析')
+    await refresh(true)
   } catch (e) {
     ui.error((e as Error).message)
   }
@@ -71,6 +124,7 @@ async function remove(d: DocumentItem) {
   try {
     await documentApi.remove(d.id)
     docs.value = docs.value.filter((x) => x.id !== d.id)
+    syncPolling()
   } catch (e) {
     ui.error((e as Error).message)
   }
@@ -83,6 +137,7 @@ function fmtSize(n: number) {
 }
 
 onMounted(load)
+onBeforeUnmount(stopPolling)
 </script>
 
 <template>
@@ -93,11 +148,19 @@ onMounted(load)
 
     <PageHeader eyebrow="你的知识" :title="kb?.name || '知识库'" :desc="kb?.description || '管理这个库里的文档'">
       <template #actions>
+        <button class="mf-btn-ghost" :disabled="refreshing" @click="refresh(true)">
+          <MfIcon name="refresh" :size="16" :class="refreshing ? 'animate-spin' : ''" /> 刷新
+        </button>
         <button class="mf-btn-ghost" @click="showUrl = true">导入网页</button>
         <button class="mf-btn-primary" @click="fileInput?.click()"><MfIcon name="upload" :size="18" /> 上传文档</button>
         <input ref="fileInput" type="file" multiple class="hidden" @change="onFiles" />
       </template>
     </PageHeader>
+
+    <p v-if="!loading && hasPending()" class="mb-4 flex items-center gap-2 text-sm text-apricot">
+      <MfIcon name="refresh" :size="14" class="animate-spin" />
+      有文档正在后台解析，状态会自动刷新…
+    </p>
 
     <div v-if="loading" class="space-y-3">
       <div v-for="i in 5" :key="i" class="mf-skeleton h-16" />
@@ -114,12 +177,16 @@ onMounted(load)
         </div>
         <div class="min-w-0 flex-1">
           <p class="truncate font-medium text-ink">{{ d.file_name }}</p>
-          <p class="font-mono text-xs text-ink-faint">{{ fmtSize(d.file_size) }} · {{ d.chunk_num }} 片段</p>
+          <p class="font-mono text-xs text-ink-faint">
+            {{ fmtSize(d.file_size) }}
+            <template v-if="d.status === 'done'"> · {{ d.chunk_num }} 片段</template>
+            <template v-else-if="d.status === 'parsing' && d.progress"> · {{ Math.round(d.progress * 100) }}%</template>
+          </p>
         </div>
         <span class="mf-pill" :class="(statusMap[d.status] || statusMap.pending).cls">
           {{ (statusMap[d.status] || statusMap.pending).label }}
         </span>
-        <button v-if="d.status === 'failed'" class="mf-btn-sm mf-btn-ghost" @click="documentApi.retry(d.id).then(load)">重试</button>
+        <button v-if="d.status === 'failed'" class="mf-btn-sm mf-btn-ghost" @click="retry(d)">重试</button>
         <button class="text-ink-faint opacity-0 transition hover:text-coral group-hover:opacity-100" @click="remove(d)">
           <MfIcon name="trash" :size="16" />
         </button>

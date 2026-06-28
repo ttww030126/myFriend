@@ -26,10 +26,8 @@ const paths: Record<string, string> = {
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.9 2.4L22 19l-2.1.6L19 22l-.9-2.4L16 19l2.1-.6z',
   upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 8l5-5 5 5M12 3v12',
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
-  refresh:
-    'M21 12a9 9 0 0 0-15-6.7M6 5H3V2M3 12a9 9 0 0 0 15 6.7M18 19h3v3',
-  chevronDown: 'M6 9l6 6 6-6',
-  external: 'M14 3h7v7M10 14L21 3M21 14v7h-7',
+  refresh: 'M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6',
+  trace: 'M3 12h4l3 8 4-16 3 8h4',
 }
 </script>
 

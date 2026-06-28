@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-// 路由表 + /login 守卫
+// 路由表对应原 Comet 的 App.tsx；新增 /login 守卫
 const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue'), meta: { public: true } },
   { path: '/s/:token', name: 'share', component: () => import('@/pages/SharePage.vue'), meta: { public: true } },
@@ -13,6 +13,7 @@ const routes: RouteRecordRaw[] = [
       { path: '', name: 'home', component: () => import('@/pages/HomePage.vue') },
       { path: 'chat', name: 'chat', component: () => import('@/pages/ChatPage.vue') },
       { path: 'group-chat', name: 'group-chat', component: () => import('@/pages/GroupChatPage.vue') },
+      { path: 'group-chat/:convId', name: 'group-room', component: () => import('@/pages/GroupRoomPage.vue') },
       { path: 'research', name: 'research', component: () => import('@/pages/ResearchPage.vue') },
       { path: 'agent-tasks', name: 'agent-tasks', component: () => import('@/pages/AgentTaskPage.vue') },
       { path: 'knowledge', name: 'knowledge', component: () => import('@/pages/KnowledgeBasePage.vue') },
@@ -23,6 +24,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'music', name: 'music', component: () => import('@/pages/MusicLibraryPage.vue') },
       { path: 'search', name: 'search', component: () => import('@/pages/SearchPage.vue') },
       { path: 'favorites', name: 'favorites', component: () => import('@/pages/FavoritesPage.vue') },
+      { path: 'traces', name: 'traces', component: () => import('@/pages/TracesPage.vue') },
       { path: 'profile', name: 'profile', component: () => import('@/pages/ProfilePage.vue') },
       { path: 'settings/models', name: 'models', component: () => import('@/pages/ModelConfigPage.vue') },
       { path: 'settings/agent', name: 'agent', component: () => import('@/pages/AgentConfigPage.vue') },

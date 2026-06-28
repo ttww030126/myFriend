@@ -45,6 +45,7 @@ const groups = [
       { to: '/agent-tasks', icon: 'task', label: '任务' },
       { to: '/music', icon: 'music', label: '音乐' },
       { to: '/favorites', icon: 'star', label: '收藏' },
+      { to: '/traces', icon: 'trace', label: '执行轨迹' },
     ],
   },
   {
