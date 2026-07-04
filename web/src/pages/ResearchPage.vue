@@ -58,11 +58,16 @@ async function start() {
   progress.value = []
   abort.value = new AbortController()
   const t = topic.value.trim()
+  // 跟踪本次流是否真的产出报告 / 报错，避免"立即显示已完成却没有报告"
+  let errorMsg = ''
+  let completed = false
+  let sawMeta = false
   try {
     await startResearchStream(
       t,
       (ev, data) => {
         if (ev === 'meta' && data.report_id) {
+          sawMeta = true
           progress.value.push('已建报告，开始规划…')
         } else if (ev === 'plan' || ev === 'planning') {
           progress.value.push('已生成研究大纲')
@@ -77,15 +82,27 @@ async function start() {
         } else if (ev === 'loop_finished') {
           progress.value.push(`质量闭环：${data.status}（评分 ${data.final_score ?? '-'}）`)
         } else if (ev === 'done' || ev === 'finished') {
+          completed = true
           progress.value.push('报告完成 ✓')
         } else if (ev === 'error') {
-          progress.value.push(`出错：${data.message || data.raw || '未知错误'}`)
+          errorMsg = String(data.message || data.raw || '未知错误')
+          progress.value.push(`出错：${errorMsg}`)
         }
       },
       abort.value.signal,
     )
-    ui.success('研究完成')
-    topic.value = ''
+    // 只有真正跑完才算成功；后端前置校验失败（如未配模型/未配联网搜索）会先发 error 事件，
+    // 这里据此给出真实反馈，不再一律弹"研究完成"
+    if (errorMsg) {
+      ui.error(errorMsg)
+    } else if (completed) {
+      ui.success('研究完成')
+      topic.value = ''
+    } else if (!sawMeta) {
+      ui.error('研究未能启动，请检查是否已在「模型配置」添加对话模型与 websearch 模型')
+    } else {
+      ui.notify('研究已结束，但未收到完成信号，请稍后在下方列表查看', 'info')
+    }
   } catch (e) {
     if ((e as Error).name !== 'AbortError') ui.error((e as Error).message)
   } finally {
@@ -134,6 +151,31 @@ async function openReport(r: ReportBrief) {
   } finally {
     detailLoading.value = false
   }
+}
+
+// 把当前报告导出为 Markdown 文件（纯前端 Blob 下载，无需后端接口）
+function downloadReport() {
+  const d = detail.value
+  if (!d || !d.report_md) return ui.error('报告还没有正文，暂时无法下载')
+  const heading = d.title || d.topic || '研究报告'
+  // 顺手把引用来源附在文末，导出的 md 更完整
+  let md = `# ${heading}\n\n${d.report_md}`
+  if (d.sources?.length) {
+    md += '\n\n## 引用来源\n\n'
+    md += d.sources
+      .map((s) => `${s.index}. ${s.title}${s.url ? ` — ${s.url}` : ''}`)
+      .join('\n')
+  }
+  const safeName = heading.replace(/[\\/:*?"<>|\n]+/g, '_').slice(0, 80) || 'research_report'
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${safeName}.md`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // 取最后一轮的维度分画雷达
@@ -311,6 +353,13 @@ onBeforeUnmount(() => {
         </section>
       </div>
       <template #footer>
+        <button
+          v-if="detail?.report_md"
+          class="mf-btn-soft"
+          @click="downloadReport"
+        >
+          <MfIcon name="download" :size="16" /> 下载 Markdown
+        </button>
         <button class="mf-btn-primary" @click="detailOpen = false">关闭</button>
       </template>
     </MfModal>

@@ -5,24 +5,27 @@ import { useUiStore } from '@/stores/ui'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import MfIcon from '@/components/ui/MfIcon.vue'
 
+// 与后端 list_tools_for_user 返回字段严格对齐：主键是 tool_key（不是 id）
 interface ToolItem {
-  id: string
-  key: string
+  tool_key: string
   name: string
   description: string
-  enabled: boolean
   icon?: string
+  tool_type: string
+  needs_config: boolean
+  config_hint: string | null
+  enabled: boolean
 }
 
 const ui = useUiStore()
 const tools = ref<ToolItem[]>([])
 const loading = ref(true)
 
-// 与原项目三大内置工具对应：知识库 / 记忆 / 联网
+// 兜底数据用真实的内置 tool_key，避免离线预览时再次踩 undefined
 const fallback: ToolItem[] = [
-  { id: 'knowledge', key: 'knowledge', name: '知识库检索', description: '回答前先翻你存过的文档与图片，让答案有据可依', enabled: true, icon: 'book' },
-  { id: 'memory', key: 'memory', name: '记忆调用', description: '结合它记住的关于你的事，给出更贴合你的回答', enabled: true, icon: 'memory' },
-  { id: 'websearch', key: 'websearch', name: '联网搜索', description: '需要时实时联网查最新信息', enabled: false, icon: 'search' },
+  { tool_key: 'knowledge_search', name: '知识库检索', description: '回答前先翻你存过的文档与图片，让答案有据可依', enabled: true, icon: 'book', tool_type: 'builtin', needs_config: false, config_hint: null },
+  { tool_key: 'memory_search', name: '记忆检索', description: '结合它记住的关于你的事，给出更贴合你的回答', enabled: true, icon: 'memory', tool_type: 'builtin', needs_config: false, config_hint: null },
+  { tool_key: 'web_search', name: '联网搜索', description: '需要时实时联网查最新信息', enabled: false, icon: 'search', tool_type: 'builtin', needs_config: true, config_hint: '需先在「模型配置」添加 websearch 类型模型（百度千帆 / Tavily）' },
 ]
 
 async function load() {
@@ -40,10 +43,13 @@ async function load() {
 async function toggle(t: ToolItem) {
   const next = !t.enabled
   try {
-    await client.put(`/tools/${t.id}`, { enabled: next })
+    // 用真实 tool_key 调用，而不是不存在的 t.id
+    await client.put(`/tools/${t.tool_key}`, { enabled: next })
     t.enabled = next
+    if (next && t.needs_config && t.config_hint) {
+      ui.notify(t.config_hint, 'info')
+    }
   } catch (e) {
-    t.enabled = next // 本地仍切换，便于离线预览
     ui.error((e as Error).message)
   }
 }
@@ -60,13 +66,16 @@ onMounted(load)
     </div>
 
     <div v-else class="space-y-3">
-      <div v-for="t in tools" :key="t.id" class="mf-card flex items-center gap-4 p-5">
+      <div v-for="t in tools" :key="t.tool_key" class="mf-card flex items-center gap-4 p-5">
         <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-soft text-sage">
           <MfIcon :name="t.icon || 'tool'" :size="20" />
         </div>
         <div class="min-w-0 flex-1">
           <p class="font-medium text-ink">{{ t.name }}</p>
           <p class="text-sm text-ink-soft">{{ t.description }}</p>
+          <p v-if="t.needs_config && t.config_hint" class="mt-0.5 text-xs text-apricot">
+            {{ t.config_hint }}
+          </p>
         </div>
         <button
           class="relative h-7 w-12 shrink-0 rounded-full transition"
