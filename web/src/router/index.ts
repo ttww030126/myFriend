@@ -30,6 +30,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'settings/agent', name: 'agent', component: () => import('@/pages/AgentConfigPage.vue') },
       { path: 'settings/skills', name: 'skills', component: () => import('@/pages/SkillPage.vue') },
       { path: 'settings/tools', name: 'tools', component: () => import('@/pages/ToolConfigPage.vue') },
+      { path: 'settings/mcp', name: 'mcp', component: () => import('@/pages/McpPage.vue') },
       { path: 'settings/notify', name: 'notify', component: () => import('@/pages/NotifyChannelPage.vue') },
     ],
   },

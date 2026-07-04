@@ -162,7 +162,7 @@ class DashboardService:
         - failure_dims:失败维度归因(各维度单维不达硬门槛的次数 top 5)
         - verifier_kinds:verifier_kind 分布(same / cross 各跑了多少次)
         """
-        from datetime import datetime as _dt, timedelta, timezone as _tz
+        from datetime import datetime as _dt, timedelta
 
         from app.models.loop_model import (
             STATUS_EXCEEDED,
@@ -172,7 +172,10 @@ class DashboardService:
             LoopRun,
         )
 
-        since = _dt.now(_tz.utc) - timedelta(days=days)
+        # LoopRun.started_at 是 TIMESTAMP WITHOUT TIME ZONE(由 func.now() 写入，naive）,
+        # 这里必须用 naive datetime 对齐，否则 asyncpg 无法把 tz-aware 值绑定到 naive 时间列
+        # （报错：can't subtract offset-naive and offset-aware datetimes）。
+        since = _dt.now() - timedelta(days=days)
 
         # 1) 状态分布 + 迭代/评分平均(passed/exceeded 计入)
         rows = await self.session.execute(

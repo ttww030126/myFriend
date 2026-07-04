@@ -29,6 +29,8 @@ const loading = ref(true)
 const showForm = ref(false)
 const showGuide = ref(false)
 const testing = ref<string | null>(null)
+// 正在编辑的配置 id；为 null 表示"新增"模式
+const editingId = ref<string | null>(null)
 
 const types = TYPE_OPTIONS
 const providers = PROVIDER_OPTIONS
@@ -48,6 +50,8 @@ const form = reactive<ModelConfigPayload>({
 watch(
   () => form.provider,
   (next, prev) => {
+    // 编辑模式下供应商不可改，也不自动覆盖已有 base_url
+    if (editingId.value) return
     const prevDefault = prev ? PROVIDER_DEFAULT_BASE_URL[prev] : ''
     if (!form.base_url || form.base_url === prevDefault) {
       form.base_url = PROVIDER_DEFAULT_BASE_URL[next] || ''
@@ -69,6 +73,7 @@ async function load() {
 }
 
 function openNew() {
+  editingId.value = null
   Object.assign(form, {
     type: 'chat',
     provider: 'openai',
@@ -82,6 +87,22 @@ function openNew() {
   showForm.value = true
 }
 
+// 编辑已有配置：把当前值回填进表单。api_key 是掩码值，留空表示不改。
+function openEdit(it: ModelConfigItem) {
+  editingId.value = it.id
+  Object.assign(form, {
+    type: it.type,
+    provider: it.provider,
+    name: it.name,
+    model_name: it.model_name,
+    api_key: '',
+    base_url: it.base_url,
+    capability: [...(it.capability || [])],
+    is_default: it.is_default,
+  })
+  showForm.value = true
+}
+
 function toggleCap(v: string) {
   const i = form.capability.indexOf(v)
   if (i >= 0) form.capability.splice(i, 1)
@@ -91,8 +112,22 @@ function toggleCap(v: string) {
 async function submit() {
   if (!form.name.trim() || !form.model_name.trim()) return ui.error('请填写名称与模型标识')
   try {
-    await modelApi.create({ ...form })
-    ui.success('模型已添加')
+    if (editingId.value) {
+      // 后端 ModelConfigUpdate 只接受这几项；type/provider 不可改，is_default 用「设为默认」单独接口
+      const payload: Partial<ModelConfigPayload> = {
+        name: form.name,
+        model_name: form.model_name,
+        base_url: form.base_url,
+        capability: [...form.capability],
+      }
+      // 只有填了新 Key 才提交，留空则保留原 Key
+      if (form.api_key.trim()) payload.api_key = form.api_key
+      await modelApi.update(editingId.value, payload)
+      ui.success('模型已更新')
+    } else {
+      await modelApi.create({ ...form })
+      ui.success('模型已添加')
+    }
     showForm.value = false
     load()
   } catch (e) {
@@ -219,27 +254,29 @@ onMounted(load)
             {{ testing === it.id ? '测试中…' : '测试' }}
           </button>
           <button v-if="!it.is_default" class="mf-btn-sm mf-btn-ghost" @click="setDefault(it)">设为默认</button>
+          <button class="mf-btn-sm mf-btn-ghost" @click="openEdit(it)">编辑</button>
           <button class="text-ink-faint transition hover:text-coral" @click="remove(it)"><MfIcon name="trash" :size="16" /></button>
         </div>
       </div>
     </div>
 
-    <MfModal :open="showForm" title="添加模型" @close="showForm = false">
+    <MfModal :open="showForm" :title="editingId ? '编辑模型' : '添加模型'" @close="showForm = false">
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink">类型</label>
-            <select v-model="form.type" class="mf-input">
+            <select v-model="form.type" class="mf-input" :disabled="!!editingId">
               <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
           </div>
           <div>
             <label class="mb-1.5 block text-sm font-medium text-ink">供应商</label>
-            <select v-model="form.provider" class="mf-input">
+            <select v-model="form.provider" class="mf-input" :disabled="!!editingId">
               <option v-for="p in providers" :key="p.value" :value="p.value">{{ p.label }}</option>
             </select>
           </div>
         </div>
+        <p v-if="editingId" class="-mt-2 text-xs text-ink-faint">类型与供应商不可修改，如需更换请删除后重新添加。</p>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink">显示名称</label>
           <input v-model="form.name" class="mf-input" placeholder="比如：我的 GPT-4o" />
@@ -250,7 +287,7 @@ onMounted(load)
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink">API Key</label>
-          <input v-model="form.api_key" type="password" class="mf-input" placeholder="sk-…" />
+          <input v-model="form.api_key" type="password" class="mf-input" :placeholder="editingId ? '留空则不修改，仅在需要换 Key 时填写' : 'sk-…'" />
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink">Base URL（切换供应商自动带出，可改）</label>
@@ -271,13 +308,13 @@ onMounted(load)
             </button>
           </div>
         </div>
-        <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+        <label v-if="!editingId" class="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
           <input v-model="form.is_default" type="checkbox" class="accent-coral" /> 设为该类型默认模型
         </label>
       </div>
       <template #footer>
         <button class="mf-btn-ghost" @click="showForm = false">取消</button>
-        <button class="mf-btn-primary" @click="submit">添加</button>
+        <button class="mf-btn-primary" @click="submit">{{ editingId ? '保存' : '添加' }}</button>
       </template>
     </MfModal>
   </div>

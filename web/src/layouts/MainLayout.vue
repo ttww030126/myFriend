@@ -54,6 +54,7 @@ const groups = [
       { to: '/settings/models', icon: 'model', label: '模型' },
       { to: '/settings/skills', icon: 'skill', label: '技能' },
       { to: '/settings/tools', icon: 'tool', label: '工具' },
+      { to: '/settings/mcp', icon: 'graph', label: 'MCP' },
       { to: '/settings/notify', icon: 'bell', label: '推送' },
     ],
   },

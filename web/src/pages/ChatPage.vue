@@ -7,6 +7,7 @@ import {
   type Conversation,
   type ToolRun,
 } from '@/api/chat'
+import { skillApi, type Skill } from '@/api/skills'
 import { useUiStore } from '@/stores/ui'
 import MarkdownMessage from '@/components/ui/MarkdownMessage.vue'
 import MfIcon from '@/components/ui/MfIcon.vue'
@@ -26,6 +27,11 @@ let abort: AbortController | null = null
 
 // 工具开关
 const tools = ref({ knowledge: true, memory: true, web: false })
+
+// 技能：本轮挂载的技能（null 表示不用技能）。挂上后后端会注入其提示词、
+// 把工具收敛到该技能的 tool_keys 白名单，并优先检索它绑定的知识库。
+const skills = ref<Skill[]>([])
+const activeSkillId = ref<string | null>(null)
 
 const toolLabel: Record<string, string> = {
   knowledge_search: '查知识库',
@@ -86,6 +92,7 @@ async function send() {
     {
       conversationId: activeId.value ?? undefined,
       message: text,
+      skillId: activeSkillId.value,
       enableKnowledge: tools.value.knowledge,
       enableMemory: tools.value.memory,
       enableWebSearch: tools.value.web,
@@ -150,7 +157,19 @@ async function removeConversation(id: string, e: Event) {
   }
 }
 
-onMounted(loadConversations)
+async function loadSkills() {
+  try {
+    // 只列出已启用的技能供挂载
+    skills.value = (await skillApi.list()).data.filter((s) => s.enabled)
+  } catch {
+    skills.value = []
+  }
+}
+
+onMounted(() => {
+  loadConversations()
+  loadSkills()
+})
 </script>
 
 <template>
@@ -247,7 +266,23 @@ onMounted(loadConversations)
       <!-- 输入区 -->
       <div class="border-t border-line bg-surface px-6 py-4">
         <div class="mx-auto max-w-3xl">
-          <div class="mb-2 flex gap-2">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <!-- 技能挂载：选中后本轮对话套用该技能的提示词/工具/知识库 -->
+            <label
+              v-if="skills.length"
+              class="mf-pill flex cursor-pointer items-center gap-1 border transition"
+              :class="activeSkillId ? 'border-lilac/50 bg-lilac-soft text-lilac' : 'border-line text-ink-faint'"
+            >
+              <span>🧩</span>
+              <select
+                v-model="activeSkillId"
+                class="cursor-pointer bg-transparent pr-1 text-xs outline-none"
+              >
+                <option :value="null">不用技能</option>
+                <option v-for="s in skills" :key="s.id" :value="s.id">{{ s.icon }} {{ s.name }}</option>
+              </select>
+            </label>
+
             <button
               v-for="(on, key) in tools"
               :key="key"
@@ -258,6 +293,9 @@ onMounted(loadConversations)
               {{ key === 'knowledge' ? '📚 知识库' : key === 'memory' ? '🧠 记忆' : '🌐 联网' }}
             </button>
           </div>
+          <p v-if="activeSkillId" class="mb-2 text-xs text-ink-faint">
+            已挂载技能，本轮将套用它的提示词与工具范围；若技能限定了工具，上面的开关会以技能白名单为准。
+          </p>
           <div class="flex items-end gap-2 rounded-2xl border border-line bg-bg p-2 focus-within:border-coral/50">
             <textarea
               v-model="input"

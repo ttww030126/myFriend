@@ -114,7 +114,12 @@ class LoopStore:
                 return
             run.status = status
             run.final_score = final_score
-            run.finished_at = datetime.now(UTC)
+            # loop_runs.finished_at 在 ORM 里声明为 naive datetime（SQLAlchemy 会按
+            # TIMESTAMP WITHOUT TIME ZONE 绑定），若写入 tz-aware 值，asyncpg 会抛
+            # can't subtract offset-naive and offset-aware datetimes，整个 finish_run
+            # 事务被回滚 → LoopRun 永远停在 running（报告端显示「进行中」、仪表盘均值全 0）。
+            # 这里统一写 naive UTC，和 started_at/created_at（func.now()）保持一致。
+            run.finished_at = datetime.now(UTC).replace(tzinfo=None)
             if note:
                 run.note = note[:2000]  # 防御性截断
             await self.session.commit()

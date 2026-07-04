@@ -127,6 +127,11 @@ class Settings(BaseSettings):
     research_fetch_top_n: int = 8  # 跨查询去重后最多抓取多少个网页正文
     research_fetch_concurrency: int = 4  # 抓正文并发上限
     research_fetch_timeout: int = 12  # 单个网页抓取超时（秒）
+    # 反爬兜底：直连被 403/521 等拦下时，改走第三方 Reader 服务抓取正文。
+    # 默认关闭——开启意味着会把目标 URL 发送给第三方服务，请自行评估隐私/合规。
+    research_reader_fallback: bool = False
+    research_reader_endpoint: str = "https://r.jina.ai"  # Reader 服务前缀（拼成 {endpoint}/{url}）
+    research_reader_timeout: int = 20  # Reader 抓取超时（秒）
     research_source_truncate_chars: int = 3000  # 单个来源正文截断长度
     research_max_sections: int = 6  # 报告最多章节数
     research_kb_top_k: int = 6  # 知识库检索每查询取多少条
